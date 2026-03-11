@@ -308,8 +308,14 @@ class RangeTests : TestBase
     }
 
     [Theory]
+    [TestCase("(0,0)", "empty")]
+    [TestCase("[0,0)", "empty")]
+    [TestCase("(0,0]", "empty")]
     [TestCase("(1,1)", "empty")]
     [TestCase("[1,1)", "empty")]
+    [TestCase("(1,1]", "empty")]
+    [TestCase("(0,1)", "(0,1)")] // FIXME: PG normalizes (0,1) to empty.
+    [TestCase("(1,2)", "(1,2)")] // FIXME: PG normalizes (1,2) to empty.
     [TestCase("[,1]", "(,1]")]
     [TestCase("[1,]", "[1,)")]
     [TestCase("[,]", "(,)")]
@@ -328,8 +334,14 @@ class RangeTests : TestBase
     }
 
     [Theory]
+    [TestCase("(0,0)", "empty")]
+    [TestCase("[0,0)", "empty")]
+    [TestCase("(0,0]", "empty")]
     [TestCase("(1,1)", "empty")]
     [TestCase("[1,1)", "empty")]
+    [TestCase("(1,1]", "empty")]
+    [TestCase("(0,1)", "(0,1)")] // FIXME: PG normalizes (0,1) to empty.
+    [TestCase("(1,2)", "(1,2)")] // FIXME: PG normalizes (1,2) to empty.
     [TestCase("[,1]", "(,1]")]
     [TestCase("[1,]", "[1,)")]
     [TestCase("[,]", "(,)")]

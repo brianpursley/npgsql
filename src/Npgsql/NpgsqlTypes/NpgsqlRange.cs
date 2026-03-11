@@ -211,10 +211,12 @@ public readonly struct NpgsqlRange<T> : IEquatable<NpgsqlRange<T>>
     {
         // ---------------------------------------------------------------------------------
         // We only want to check for those conditions that are unambiguously erroneous:
-        //   1. The bounds must not be default values (including null).
+        //   1. The bounds must not be null.
         //   2. The bounds must be definite (non-infinite).
         //   3. The bounds must be inclusive.
         //   4. The bounds must be considered equal.
+        //
+        // KNOWN LIMITATION: This method does not detect emptiness in the case of unequal bounds that are empty due to exclusivity, e.g (0,1) or (1,2)
         //
         // See:
         //  - https://github.com/npgsql/npgsql/pull/1939
@@ -224,7 +226,8 @@ public readonly struct NpgsqlRange<T> : IEquatable<NpgsqlRange<T>>
         if ((flags & RangeFlags.Empty) == RangeFlags.Empty)
             return true;
 
-        if ((flags & RangeFlags.Infinite) == RangeFlags.Infinite)
+        // Any infinite bound (upper or lower) means emptiness cannot be inferred
+        if ((flags & RangeFlags.Infinite) != 0)
             return false;
 
         if ((flags & RangeFlags.Inclusive) == RangeFlags.Inclusive)
@@ -239,7 +242,7 @@ public readonly struct NpgsqlRange<T> : IEquatable<NpgsqlRange<T>>
         var lower = (IEquatable<T>)lowerBound;
         var upper = (IEquatable<T>)upperBound;
 
-        return !lower.Equals(default!) && !upper.Equals(default!) && lower.Equals(upperBound);
+        return lower.Equals(upper);
     }
 
     /// <summary>
