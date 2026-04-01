@@ -1174,7 +1174,7 @@ public sealed partial class NpgsqlConnector
             try
             {
                 if (async)
-                    await sslStream.AuthenticateAsClientAsync(sslStreamOptions, cancellationToken).ConfigureAwait(false);
+                    await AuthenticateAsClientWithTimeoutAsync(sslStream, sslStreamOptions, timeout, cancellationToken).ConfigureAwait(false);
                 else
                     sslStream.AuthenticateAsClient(sslStreamOptions);
 
@@ -1201,6 +1201,24 @@ public sealed partial class NpgsqlConnector
             _certificates = null;
 
             throw;
+        }
+    }
+
+    static async Task AuthenticateAsClientWithTimeoutAsync(SslStream sslStream, SslClientAuthenticationOptions sslStreamOptions, NpgsqlTimeout timeout, CancellationToken cancellationToken)
+    {
+        // If timeout is set, create a new token that will be canceled when either the original token is canceled or the timeout expires,
+        // otherwise, just use the original token directly
+        using var timeoutAwareCts = timeout.IsSet ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : null;
+        timeoutAwareCts?.CancelAfter(timeout.CheckAndGetTimeLeft());
+        var timeoutAwareCancellationToken =  timeoutAwareCts?.Token ?? cancellationToken;
+        try
+        {
+            await sslStream.AuthenticateAsClientAsync(sslStreamOptions, timeoutAwareCancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException ex) when (timeoutAwareCancellationToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            // Handle exception when the CancellationToken was canceled due to timeout
+            throw new TimeoutException("Timeout during SSL handshake", ex);
         }
     }
 
